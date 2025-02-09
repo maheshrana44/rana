@@ -38,6 +38,9 @@ conn.commit()
 def is_youtube_link(link):
     return bool(re.match(r"https?://(www\.)?(youtube\.com|youtu\.be)/", link))
 
+# User data storage
+user_data = {}
+
 # Start command
 @app.on_message(filters.command("start"))
 def start(client, message):
@@ -50,19 +53,19 @@ def start(client, message):
 # Handle Subscribe and Like selection
 @app.on_callback_query(filters.regex("subscribe"))
 def subscribe(client, callback_query):
+    user_data[callback_query.from_user.id] = {"action": "subscribe"}
     callback_query.message.reply_text("आपको कितने सब्सक्राइबर्स चाहिए? संख्या डालें।")
-    app.set_user_data(callback_query.from_user.id, "action", "subscribe")
 
 @app.on_callback_query(filters.regex("like"))
 def like(client, callback_query):
+    user_data[callback_query.from_user.id] = {"action": "like"}
     callback_query.message.reply_text("आपको कितने लाइक्स चाहिए? संख्या डालें।")
-    app.set_user_data(callback_query.from_user.id, "action", "like")
 
 # Handle user input for likes/subscribers
 @app.on_message(filters.text & filters.private)
 def handle_count(client, message):
     user_id = message.from_user.id
-    action = app.get_user_data(user_id, "action")
+    action = user_data.get(user_id, {}).get("action")
     
     if not action or not message.text.isdigit():
         return
@@ -79,7 +82,7 @@ def handle_count(client, message):
     if links:
         response = "🔗 Like or Subscribe these links first:\n" + '\n'.join(link[0] for link in links)
         message.reply_text(response)
-        app.set_user_data(user_id, "pending_task", count)
+        user_data[user_id]["pending_task"] = count
     else:
         message.reply_text("कोई टास्क उपलब्ध नहीं है। बाद में प्रयास करें।")
 
@@ -87,13 +90,13 @@ def handle_count(client, message):
 @app.on_message(filters.command("confirm"))
 def confirm_task(client, message):
     user_id = message.from_user.id
-    pending_task = app.get_user_data(user_id, "pending_task")
+    pending_task = user_data.get(user_id, {}).get("pending_task")
 
     if not pending_task:
         message.reply_text("आपके पास कोई लंबित टास्क नहीं है।")
         return
 
-    action = app.get_user_data(user_id, "action")
+    action = user_data.get(user_id, {}).get("action")
     
     if action == "like":
         cursor.execute("UPDATE likes SET completed_likes = completed_likes + ? WHERE user_id != ?", (pending_task, user_id))
@@ -102,13 +105,13 @@ def confirm_task(client, message):
     
     conn.commit()
     message.reply_text("✅ टास्क पूरा हुआ! अब आप अपना लिंक जोड़ सकते हैं। /addlink का उपयोग करें।")
-    app.set_user_data(user_id, "task_completed", True)
+    user_data[user_id]["task_completed"] = True
 
 # Add user link
 @app.on_message(filters.command("addlink"))
 def add_link(client, message):
     user_id = message.from_user.id
-    if not app.get_user_data(user_id, "task_completed"):
+    if not user_data.get(user_id, {}).get("task_completed"):
         message.reply_text("❌ पहले टास्क पूरा करें!")
         return
     
@@ -118,8 +121,8 @@ def add_link(client, message):
         return
     
     youtube_link = args[1]
-    action = app.get_user_data(user_id, "action")
-    pending_task = app.get_user_data(user_id, "pending_task")
+    action = user_data.get(user_id, {}).get("action")
+    pending_task = user_data.get(user_id, {}).get("pending_task")
     
     if action == "like":
         cursor.execute("INSERT INTO likes (user_id, youtube_link, required_likes) VALUES (?, ?, ?)", (user_id, youtube_link, pending_task))
@@ -128,7 +131,7 @@ def add_link(client, message):
     
     conn.commit()
     message.reply_text("✅ आपका लिंक जोड़ा गया। जब तक आपके आवश्यक लाइक्स/सब्सक्राइबर नहीं मिल जाते, तब तक यह रहेगा।")
-    app.set_user_data(user_id, "task_completed", False)
+    user_data[user_id]["task_completed"] = False
 
 # Manually adding a link to the database
 def add_link_to_database():
