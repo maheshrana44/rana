@@ -1,5 +1,4 @@
 aiogram==2.25.1
 python-dotenv==1.0.0
-sqlite3  # If using SQLite
-pymongo==4.6.1  # If using MongoDB
+pymongo==4.6.1  # If using MongoDB (optional)
 
