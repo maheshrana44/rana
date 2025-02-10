@@ -1,6 +1,7 @@
-import sqlite3
+import psycopg2
 import re
 import threading
+import os
 from flask import Flask
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -14,23 +15,25 @@ BOT_TOKEN = "7246016772:AAGL5cp8yY9zvHyYG0so41W5zaBwcW2Uq0M"
 app = Client("YouTubeTaskBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # Database setup
-conn = sqlite3.connect("tasks.db", check_same_thread=False)
+DATABASE_URL = os.getenv("DATABASE_URL")  # Fetching from Render environment variables
+conn = psycopg2.connect(DATABASE_URL)
 cursor = conn.cursor()
 
+# Create tables
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS likes (
-    user_id INTEGER PRIMARY KEY,
-    youtube_link TEXT,
-    required_likes INTEGER,
+    user_id BIGINT PRIMARY KEY,
+    youtube_link TEXT NOT NULL,
+    required_likes INTEGER NOT NULL,
     completed_likes INTEGER DEFAULT 0
 )
 """)
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS subscribers (
-    user_id INTEGER PRIMARY KEY,
-    youtube_link TEXT,
-    required_subscribers INTEGER,
+    user_id BIGINT PRIMARY KEY,
+    youtube_link TEXT NOT NULL,
+    required_subscribers INTEGER NOT NULL,
     completed_subscribers INTEGER DEFAULT 0
 )
 """)
@@ -75,9 +78,9 @@ def handle_count(client, message):
     count = int(message.text)
     
     if action == "like":
-        cursor.execute("SELECT youtube_link FROM likes ORDER BY completed_likes LIMIT ?", (count,))
+        cursor.execute("SELECT youtube_link FROM likes ORDER BY completed_likes LIMIT %s", (count,))
     elif action == "subscribe":
-        cursor.execute("SELECT youtube_link FROM subscribers ORDER BY completed_subscribers LIMIT ?", (count,))
+        cursor.execute("SELECT youtube_link FROM subscribers ORDER BY completed_subscribers LIMIT %s", (count,))
     
     links = cursor.fetchall()
     
@@ -101,9 +104,9 @@ def confirm_task(client, message):
     action = user_data.get(user_id, {}).get("action")
     
     if action == "like":
-        cursor.execute("UPDATE likes SET completed_likes = completed_likes + ? WHERE user_id != ?", (pending_task, user_id))
+        cursor.execute("UPDATE likes SET completed_likes = completed_likes + %s WHERE user_id != %s", (pending_task, user_id))
     elif action == "subscribe":
-        cursor.execute("UPDATE subscribers SET completed_subscribers = completed_subscribers + ? WHERE user_id != ?", (pending_task, user_id))
+        cursor.execute("UPDATE subscribers SET completed_subscribers = completed_subscribers + %s WHERE user_id != %s", (pending_task, user_id))
     
     conn.commit()
     message.reply_text("✅ टास्क पूरा हुआ! अब आप अपना लिंक जोड़ सकते हैं। /addlink का उपयोग करें।")
@@ -127,9 +130,9 @@ def add_link(client, message):
     pending_task = user_data.get(user_id, {}).get("pending_task")
     
     if action == "like":
-        cursor.execute("INSERT INTO likes (user_id, youtube_link, required_likes) VALUES (?, ?, ?)", (user_id, youtube_link, pending_task))
+        cursor.execute("INSERT INTO likes (user_id, youtube_link, required_likes) VALUES (%s, %s, %s)", (user_id, youtube_link, pending_task))
     elif action == "subscribe":
-        cursor.execute("INSERT INTO subscribers (user_id, youtube_link, required_subscribers) VALUES (?, ?, ?)", (user_id, youtube_link, pending_task))
+        cursor.execute("INSERT INTO subscribers (user_id, youtube_link, required_subscribers) VALUES (%s, %s, %s)", (user_id, youtube_link, pending_task))
     
     conn.commit()
     message.reply_text("✅ आपका लिंक जोड़ा गया। जब तक आपके आवश्यक लाइक्स/सब्सक्राइबर नहीं मिल जाते, तब तक यह रहेगा।")
