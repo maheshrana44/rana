@@ -15,7 +15,7 @@ BOT_TOKEN = "7246016772:AAGL5cp8yY9zvHyYG0so41W5zaBwcW2Uq0M"
 app = Client("YouTubeTaskBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # Database setup
-DATABASE_URL = "postgresql://infinityreach_user:iAataMv8zDErd0L78fzfqZ235W8ksMDv@dpg-cul2nil2ng1s738384g0-a/infinityreach"  # Directly set the URL
+DATABASE_URL = "postgresql://infinityreach_user:iAataMv8zDErd0L78fzfqZ235W8ksMDv@dpg-cul2nil2ng1s738384g0-a/infinityreach"
 conn = psycopg2.connect(DATABASE_URL)
 cursor = conn.cursor()
 
@@ -129,6 +129,7 @@ def add_link(client, message):
     action = user_data.get(user_id, {}).get("action")
     pending_task = user_data.get(user_id, {}).get("pending_task")
     
+    # Task assign and insert link
     if action == "like":
         cursor.execute("INSERT INTO likes (user_id, youtube_link, required_likes) VALUES (%s, %s, %s)", (user_id, youtube_link, pending_task))
     elif action == "subscribe":
