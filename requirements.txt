@@ -4,5 +4,5 @@ requests
 SQLAlchemy
 Flask
 gunicorn
-gunicorn -w 1 -b 0.0.0.0:8080 infinityreach:app_web
+
 
