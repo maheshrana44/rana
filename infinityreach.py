@@ -78,9 +78,9 @@ def handle_count(client, message):
     count = int(message.text)
     
     if action == "like":
-        cursor.execute("SELECT youtube_link FROM likes ORDER BY completed_likes LIMIT %s", (count,))
+        cursor.execute("SELECT youtube_link FROM likes WHERE completed_likes < required_likes ORDER BY completed_likes LIMIT %s", (count,))
     elif action == "subscribe":
-        cursor.execute("SELECT youtube_link FROM subscribers ORDER BY completed_subscribers LIMIT %s", (count,))
+        cursor.execute("SELECT youtube_link FROM subscribers WHERE completed_subscribers < required_subscribers ORDER BY completed_subscribers LIMIT %s", (count,))
     
     links = cursor.fetchall()
     
