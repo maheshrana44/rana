@@ -1,5 +1,6 @@
 import sqlite3
 import re
+import os
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -135,18 +136,19 @@ def add_link(client, message):
 
 # Manually adding a link to the database
 def add_link_to_database():
-    youtube_link = "https://youtu.be/YxLbhbzwIdc?si=gIC9YY0ze02UvWII"  # User-provided link
-    user_id = 123456789  # Example user_id (replace with actual user id)
-    pending_task = 5  # Example task (number of likes required)
-
-    # Add the link for a "like" task
+    youtube_link = "https://youtu.be/YxLbhbzwIdc?si=gIC9YY0ze02UvWII"
+    user_id = 123456789  # Example user_id
+    pending_task = 5  # Example task count
     cursor.execute("INSERT INTO likes (user_id, youtube_link, required_likes) VALUES (?, ?, ?)", (user_id, youtube_link, pending_task))
-    
-    # Commit the changes
     conn.commit()
 
 # Call this function to add the link to the database
 add_link_to_database()
 
-# Run bot
-app.run()
+# Run bot with port binding
+def main():
+    PORT = os.environ.get("PORT", 8080)
+    app.run(port=int(PORT))
+
+if __name__ == "__main__":
+    main()
