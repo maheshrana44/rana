@@ -1,6 +1,7 @@
 import sqlite3
 import re
-import os
+import threading
+from flask import Flask
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -49,7 +50,7 @@ def start(client, message):
         [InlineKeyboardButton("Subscribe", callback_data="subscribe"),
          InlineKeyboardButton("Like", callback_data="like")]
     ])
-    message.reply_text("👋 Welcome! Choose an action:", reply_markup=keyboard)
+    message.reply_text("\U0001F44B Welcome! Choose an action:", reply_markup=keyboard)
 
 # Handle Subscribe and Like selection
 @app.on_callback_query(filters.regex("subscribe"))
@@ -81,7 +82,7 @@ def handle_count(client, message):
     links = cursor.fetchall()
     
     if links:
-        response = "🔗 Like or Subscribe these links first:\n" + '\n'.join(link[0] for link in links)
+        response = "\U0001F517 Like or Subscribe these links first:\n" + '\n'.join(link[0] for link in links)
         message.reply_text(response)
         user_data[user_id]["pending_task"] = count
     else:
@@ -134,21 +135,18 @@ def add_link(client, message):
     message.reply_text("✅ आपका लिंक जोड़ा गया। जब तक आपके आवश्यक लाइक्स/सब्सक्राइबर नहीं मिल जाते, तब तक यह रहेगा।")
     user_data[user_id]["task_completed"] = False
 
-# Manually adding a link to the database
-def add_link_to_database():
-    youtube_link = "https://youtu.be/YxLbhbzwIdc?si=gIC9YY0ze02UvWII"
-    user_id = 123456789  # Example user_id
-    pending_task = 5  # Example task count
-    cursor.execute("INSERT INTO likes (user_id, youtube_link, required_likes) VALUES (?, ?, ?)", (user_id, youtube_link, pending_task))
-    conn.commit()
+# Flask Web Server for Render Deployment
+app_web = Flask(__name__)
 
-# Call this function to add the link to the database
-add_link_to_database()
+@app_web.route('/')
+def home():
+    return "Bot is Running!"
 
-# Run bot with port binding
-def main():
-    PORT = os.environ.get("PORT", 8080)
-    app.run(port=int(PORT))
+def run_flask():
+    app_web.run(host="0.0.0.0", port=8080)
 
-if __name__ == "__main__":
-    main()
+# Start Flask in a separate thread
+threading.Thread(target=run_flask, daemon=True).start()
+
+# Run bot
+app.run()
