@@ -15,7 +15,7 @@ BOT_TOKEN = "7246016772:AAGL5cp8yY9zvHyYG0so41W5zaBwcW2Uq0M"
 app = Client("YouTubeTaskBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # Database setup
-DATABASE_URL = os.getenv("DATABASE_URL")  # Fetching from Render environment variables
+DATABASE_URL = "postgresql://infinityreach_user:iAataMv8zDErd0L78fzfqZ235W8ksMDv@dpg-cul2nil2ng1s738384g0-a.oregon-postgres.render.com/infinityreach"  # Directly set the URL
 conn = psycopg2.connect(DATABASE_URL)
 cursor = conn.cursor()
 
