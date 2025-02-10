@@ -4,5 +4,6 @@ requests
 SQLAlchemy
 Flask
 gunicorn
+psycopg2
 
 
